@@ -3,7 +3,7 @@
 **A rate-limiting reverse proxy in Go, with a live dashboard.**
 Zero dependencies. Standard library only.
 
-[![CI](https://github.com/your-username/throttle/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/throttle/actions/workflows/ci.yml)
+[![CI](https://github.com/NYMIX18/throttle/actions/workflows/ci.yml/badge.svg)](https://github.com/your-username/throttle/actions/workflows/ci.yml)
 ![Go](https://img.shields.io/badge/go-1.22%2B-00ADD8?logo=go&logoColor=white)
 ![Dependencies](https://img.shields.io/badge/dependencies-0-2a7d57)
 ![License](https://img.shields.io/badge/license-MIT-blue)
