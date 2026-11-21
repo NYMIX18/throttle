@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Throttle dashboard</title>
+<style>
+  :root {
+    --paper: #e7ecf2;
+    --panel: #f6f8fb;
+    --ink: #162030;
+    --muted: #586577;
+    --line: #c5ced9;
+    --allow: #1b6ca8;
+    --block: #c2255c;
+    --ok: #2a7d57;
+    --down: #b3541e;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --paper: #0e1620;
+      --panel: #162131;
+      --ink: #e6ebf1;
+      --muted: #8d9aab;
+      --line: #2a3748;
+      --allow: #4da3d9;
+      --block: #f0679a;
+      --ok: #52b788;
+      --down: #e08a52;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { background: var(--paper); }
+  body {
+    margin: 0;
+    padding: 28px clamp(16px, 4vw, 48px) 48px;
+    max-width: 1180px;
+    margin-inline: auto;
+    color: var(--ink);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  h1, h2 { font-weight: 600; margin: 0; }
+  h1 {
+    font: 600 30px/1.1 Georgia, "Iowan Old Style", "Palatino Linotype", serif;
+    letter-spacing: -0.01em;
+  }
+  h2 { font-size: 16px; }
+  .muted { color: var(--muted); }
+  :focus-visible { outline: 2px solid var(--allow); outline-offset: 2px; }
+
+  header {
+    display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px;
+    margin-bottom: 22px;
+  }
+  .status { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--muted); }
+  .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); }
+  .dot.live { background: var(--ok); }
+  .dot.down { background: var(--down); }
+  @media (prefers-reduced-motion: no-preference) {
+    .dot.live { animation: beat 2s ease-in-out infinite; }
+    @keyframes beat { 50% { opacity: .35; } }
+  }
+  #config { flex-basis: 100%; margin: 0; color: var(--muted); }
+  @media (min-width: 900px) { #config { flex-basis: auto; margin-left: auto; } }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+
+  /* headline numbers: one strip, separated by rules, not a grid of cards */
+  .strip {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    margin: 0 0 18px; padding: 0;
+  }
+  .strip > div { padding: 2px 18px; border-left: 1px solid var(--line); }
+  .strip > div:first-child { border-left: 0; padding-left: 0; }
+  .strip dt { font-size: 13px; color: var(--muted); }
+  .strip dd { margin: 0; font-size: 30px; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; }
+  .strip dd small { font-size: 13px; font-weight: 400; color: var(--muted); letter-spacing: 0; }
+  .strip .allow dd { color: var(--allow); }
+  .strip .block dd { color: var(--block); }
+
+  .chart-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 10px; }
+  .legend { display: flex; gap: 16px; font-size: 13px; color: var(--muted); }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+  #chart { display: block; width: 100%; height: 240px; }
+  .axis { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #hint { min-height: 1.5em; font-size: 13px; color: var(--muted); margin: 6px 0 0; }
+
+  .cols { display: grid; grid-template-columns: 1fr; gap: 18px; margin-top: 18px; }
+  @media (min-width: 900px) { .cols { grid-template-columns: 3fr 2fr; } }
+
+  table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+  th { text-align: left; font-weight: 500; font-size: 13px; color: var(--muted); padding: 6px 8px 6px 0; border-bottom: 1px solid var(--line); }
+  th.n, td.n { text-align: right; padding-right: 0; }
+  td { padding: 8px 8px 8px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  td.key { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .share { width: 90px; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .share > span { display: block; height: 100%; background: var(--block); }
+  .empty { color: var(--muted); padding: 14px 0 4px; margin: 0; }
+
+  ul.backends { list-style: none; margin: 8px 0 0; padding: 0; }
+  ul.backends li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  ul.backends li:last-child { border-bottom: 0; }
+  ul.backends .name { display: flex; align-items: center; gap: 8px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; overflow-wrap: anywhere; }
+  ul.backends .meta { font-size: 13px; color: var(--muted); margin-left: 17px; }
+
+  .demo { margin-top: 18px; }
+  .demo p { margin: 4px 0 12px; color: var(--muted); max-width: 70ch; }
+  .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  label { font-size: 13px; color: var(--muted); display: inline-flex; gap: 8px; align-items: center; }
+  input[type=text] {
+    font: inherit; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 10px; width: 150px;
+  }
+  button {
+    font: inherit; font-weight: 500; color: var(--ink); background: var(--paper);
+    border: 1px solid var(--line); border-radius: 6px; padding: 6px 14px; cursor: pointer;
+  }
+  button:hover { border-color: var(--allow); }
+  button[aria-pressed=true] { background: var(--allow); border-color: var(--allow); color: #fff; }
+  #result { margin: 12px 0 0; min-height: 1.5em; color: var(--ink); }
+  footer { margin-top: 28px; font-size: 13px; color: var(--muted); }
+  a { color: var(--allow); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Throttle</h1>
+  <span class="status" role="status"><span id="dot" class="dot"></span><span id="statusText">connecting</span></span>
+  <p id="config"></p>
+</header>
+
+<dl class="strip" aria-label="Totals since start">
+  <div><dt>Requests</dt><dd id="total">0</dd></div>
+  <div class="allow"><dt>Allowed</dt><dd id="allowed">0</dd></div>
+  <div class="block"><dt>Blocked (429)</dt><dd id="blocked">0 <small id="blockRate"></small></dd></div>
+  <div><dt>Throughput</dt><dd><span id="rps">0</span> <small>req/s</small></dd></div>
+  <div><dt>Upstream p95</dt><dd><span id="p95">-</span> <small>ms</small></dd></div>
+</dl>
+
+<section class="panel" aria-labelledby="chartTitle">
+  <div class="chart-head">
+    <h2 id="chartTitle">Traffic, last two minutes</h2>
+    <div class="legend">
+      <span><i style="background:var(--allow)"></i>allowed, drawn up</span>
+      <span><i style="background:var(--block)"></i>blocked, drawn down</span>
+    </div>
+  </div>
+  <canvas id="chart" role="img" aria-label="Bar chart of allowed requests per second above the baseline and blocked requests per second below it"></canvas>
+  <div class="axis"><span>2 min ago</span><span>now</span></div>
+  <p id="hint" aria-live="off"></p>
+</section>
+
+<div class="cols">
+  <section class="panel" aria-labelledby="clientsTitle">
+    <h2 id="clientsTitle">Busiest clients</h2>
+    <table>
+      <thead><tr><th scope="col">Key</th><th scope="col" class="n">Requests</th><th scope="col" class="n">Blocked</th><th scope="col">Share blocked</th></tr></thead>
+      <tbody id="clients"></tbody>
+    </table>
+    <p id="clientsEmpty" class="empty">No traffic yet. Send some below, or run <code>make load</code>.</p>
+  </section>
+
+  <section class="panel" aria-labelledby="backendsTitle">
+    <h2 id="backendsTitle">Upstreams</h2>
+    <ul id="backends" class="backends"></ul>
+  </section>
+</div>
+
+<section class="panel demo" id="demo" hidden aria-labelledby="demoTitle">
+  <h2 id="demoTitle">Try it</h2>
+  <p>These buttons send requests through the real limiter and proxy from a simulated client. Fire a burst larger than the limit and watch the blocked bars appear.</p>
+  <div class="controls">
+    <label>Client <input id="client" type="text" value="alice" maxlength="64" spellcheck="false" autocomplete="off"></label>
+    <button type="button" data-count="10">Send 10</button>
+    <button type="button" data-count="50">Burst 50</button>
+    <button type="button" data-count="200">Burst 200</button>
+    <button type="button" id="auto" aria-pressed="false">Sample traffic</button>
+  </div>
+  <p id="result" role="status"></p>
+</section>
+
+<footer>
+  Prometheus metrics at <a href="/metrics">/metrics</a>. This dashboard has no authentication; keep it on localhost.
+</footer>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const n = (v) => Number(v).toLocaleString();
+  let series = [];
+
+  // ---------- polling ----------
+  async function poll() {
+    try {
+      const res = await fetch('/api/stats', { cache: 'no-store' });
+      if (!res.ok) throw new Error(res.status);
+      render(await res.json());
+      setStatus(true);
+    } catch (e) {
+      setStatus(false);
+    }
+  }
+  function setStatus(up) {
+    $('dot').className = 'dot ' + (up ? 'live' : 'down');
+    $('statusText').textContent = up ? 'live' : 'cannot reach the proxy';
+  }
+
+  // ---------- rendering ----------
+  function render(s) {
+    const m = s.metrics, i = s.info;
+    $('config').textContent =
+      `${i.algorithm.replace('_', ' ')}: ${i.requests} per ${i.per}` +
+      (i.algorithm === 'token_bucket' ? `, burst ${i.burst}` : '') +
+      `, keyed by ${i.key_by}. ${n(s.tracked_keys)} keys tracked.`;
+
+    $('total').textContent = n(m.total);
+    $('allowed').textContent = n(m.allowed);
+    $('blocked').firstChild.textContent = n(m.blocked) + ' ';
+    $('blockRate').textContent = m.total ? (100 * m.blocked / m.total).toFixed(1) + '%' : '';
+    $('p95').textContent = m.allowed ? m.p95_ms : '-';
+
+    series = m.series;
+    const recent = series.slice(-6, -1); // last 5 complete seconds
+    const sum = recent.reduce((a, p) => a + p.allowed + p.blocked, 0);
+    $('rps').textContent = Math.round(sum / Math.max(recent.length, 1));
+    drawChart();
+
+    renderClients(m.top_clients);
+    renderBackends(s.backends);
+    $('demo').hidden = !s.demo_enabled;
+  }
+
+  function renderClients(list) {
+    const body = $('clients');
+    body.replaceChildren();
+    $('clientsEmpty').hidden = list.length > 0;
+    for (const c of list) {
+      const tr = document.createElement('tr');
+      const key = document.createElement('td');
+      key.className = 'key';
+      key.textContent = c.key;          // textContent: keys come from request headers
+      key.title = c.key;
+      const tot = cell(n(c.total), 'n');
+      const blk = cell(n(c.blocked), 'n');
+      const share = document.createElement('td');
+      const bar = document.createElement('div');
+      bar.className = 'share';
+      const fill = document.createElement('span');
+      fill.style.width = (c.total ? (100 * c.blocked / c.total) : 0) + '%';
+      bar.appendChild(fill);
+      share.appendChild(bar);
+      tr.append(key, tot, blk, share);
+      body.appendChild(tr);
+    }
+  }
+  function cell(text, cls) {
+    const td = document.createElement('td');
+    td.className = cls;
+    td.textContent = text;
+    return td;
+  }
+
+  function renderBackends(list) {
+    const ul = $('backends');
+    ul.replaceChildren();
+    for (const b of list) {
+      const li = document.createElement('li');
+      const name = document.createElement('div');
+      name.className = 'name';
+      const dot = document.createElement('span');
+      dot.className = 'dot ' + (b.healthy ? 'live' : 'down');
+      const label = document.createElement('span');
+      label.textContent = b.url;
+      name.append(dot, label);
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = (b.healthy ? 'healthy' : 'out of rotation') +
+        `, ${n(b.requests)} served, ${n(b.failures)} failed, ${b.inflight} in flight`;
+      li.append(name, meta);
+      ul.appendChild(li);
+    }
+  }
+
+  // ---------- diverging chart ----------
+  function drawChart() {
+    const c = $('chart');
+    const dpr = window.devicePixelRatio || 1;
+    const w = c.clientWidth, h = c.clientHeight;
+    if (c.width !== Math.round(w * dpr) || c.height !== Math.round(h * dpr)) {
+      c.width = Math.round(w * dpr);
+      c.height = Math.round(h * dpr);
+    }
+    const g = c.getContext('2d');
+    g.setTransform(dpr, 0, 0, dpr, 0, 0);
+    g.clearRect(0, 0, w, h);
+    const css = getComputedStyle(document.documentElement);
+    const col = (name) => css.getPropertyValue(name).trim();
+
+    const mid = Math.round(h * 0.6);
+    const up = mid - 22, down = h - mid - 22;
+    const maxA = Math.max(1, ...series.map((p) => p.allowed));
+    const maxB = Math.max(1, ...series.map((p) => p.blocked));
+    const bw = w / Math.max(series.length, 1);
+
+    g.fillStyle = col('--allow');
+    series.forEach((p, i) => {
+      const bh = (p.allowed / maxA) * up;
+      if (bh > 0) g.fillRect(i * bw + 0.5, mid - bh - 1, Math.max(bw - 1, 1), bh);
+    });
+    g.fillStyle = col('--block');
+    series.forEach((p, i) => {
+      const bh = (p.blocked / maxB) * down;
+      if (bh > 0) g.fillRect(i * bw + 0.5, mid + 1, Math.max(bw - 1, 1), bh);
+    });
+
+    g.fillStyle = col('--line');
+    g.fillRect(0, mid, w, 1);
+
+    g.font = '12px system-ui, sans-serif';
+    g.fillStyle = col('--muted');
+    g.textBaseline = 'top';
+    g.fillText(`allowed, peak ${maxA}/s`, 0, 0);
+    g.textBaseline = 'bottom';
+    g.fillText(`blocked, peak ${maxB}/s`, 0, h);
+  }
+  $('chart').addEventListener('mousemove', (e) => {
+    if (!series.length) return;
+    const r = e.target.getBoundingClientRect();
+    const i = Math.min(series.length - 1, Math.max(0, Math.floor(((e.clientX - r.left) / r.width) * series.length)));
+    const p = series[i];
+    const ago = series.length - 1 - i;
+    $('hint').textContent = `${ago === 0 ? 'this second' : ago + 's ago'}: ${p.allowed} allowed, ${p.blocked} blocked`;
+  });
+  $('chart').addEventListener('mouseleave', () => { $('hint').textContent = ''; });
+  window.addEventListener('resize', drawChart);
+
+  // ---------- demo controls ----------
+  async function burst(count, client) {
+    const url = `/api/demo/burst?count=${count}&client=${encodeURIComponent(client)}`;
+    const res = await fetch(url, { method: 'POST' });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || res.status);
+    return body;
+  }
+  document.querySelectorAll('button[data-count]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const client = $('client').value.trim() || 'alice';
+      try {
+        const r = await burst(Number(btn.dataset.count), client);
+        $('result').textContent =
+          `${client} sent ${r.sent}: ${r.allowed} allowed, ${r.blocked} blocked` +
+          (r.failed ? `, ${r.failed} failed (is an upstream down?)` : '') + '.';
+        poll();
+      } catch (e) {
+        $('result').textContent = 'Request failed: ' + e.message;
+      }
+    });
+  });
+
+  let timer = null;
+  const people = [['alice', 14], ['bob', 7], ['carol', 4], ['dave', 2], ['erin', 1], ['frank', 1]];
+  $('auto').addEventListener('click', (e) => {
+    const on = e.currentTarget.getAttribute('aria-pressed') !== 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    e.currentTarget.textContent = on ? 'Stop sample traffic' : 'Sample traffic';
+    clearInterval(timer);
+    if (on) {
+      const tick = () => people.forEach(([name, perSec]) => burst(perSec, name).catch(() => {}));
+      tick();
+      timer = setInterval(tick, 1000);
+    }
+  });
+
+  poll();
+  setInterval(poll, 1000);
+})();
+</script>
+</body>
+</html>

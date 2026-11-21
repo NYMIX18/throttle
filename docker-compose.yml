@@ -1,0 +1,25 @@
+# Throttle plus three demo upstreams.
+#   docker compose up --build
+# Proxy:     http://localhost:8080
+# Dashboard: http://localhost:9090  (published on localhost only; it has no auth)
+services:
+  throttle:
+    build: .
+    image: throttle:dev
+    ports:
+      - "8080:8080"
+      - "127.0.0.1:9090:9090"
+    depends_on: [api1, api2, api3]
+
+  api1:
+    build: .
+    image: throttle:dev
+    entrypoint: ["/demo-backend", "-port", "9001", "-name", "api-1", "-latency", "40ms"]
+  api2:
+    build: .
+    image: throttle:dev
+    entrypoint: ["/demo-backend", "-port", "9002", "-name", "api-2", "-latency", "40ms"]
+  api3:
+    build: .
+    image: throttle:dev
+    entrypoint: ["/demo-backend", "-port", "9003", "-name", "api-3", "-latency", "40ms"]

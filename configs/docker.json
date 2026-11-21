@@ -1,0 +1,17 @@
+{
+  "listen": ":8080",
+  "admin_listen": "0.0.0.0:9090",
+  "upstreams": [
+    "http://api1:9001",
+    "http://api2:9002",
+    "http://api3:9003"
+  ],
+  "rate_limit": {
+    "algorithm": "sliding_window",
+    "requests": 20,
+    "per": "10s",
+    "key_by": "header:X-API-Key"
+  },
+  "health_check": { "path": "/healthz", "interval": "3s", "timeout": "1s" },
+  "demo_endpoints": true
+}
