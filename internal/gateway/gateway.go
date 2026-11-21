@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/your-username/throttle/internal/limiter"
-	"github.com/your-username/throttle/internal/metrics"
+	"github.com/NYMIX18/throttle/internal/limiter"
+	"github.com/NYMIX18/throttle/internal/metrics"
 )
 
 // KeyFunc extracts the rate-limit key (who is being limited) from a request.

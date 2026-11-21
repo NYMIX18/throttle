@@ -4,7 +4,7 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 new="${1:?usage: $0 github.com/<you>/throttle}"
-old="github.com/your-username/throttle"
+old="github.com/NYMIX18/throttle"
 grep -rl --include='*.go' --include='go.mod' --include='*.md' --include='*.yml' "$old" . \
   | xargs sed -i.bak "s#$old#$new#g"
 find . -name '*.bak' -delete

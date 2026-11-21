@@ -14,9 +14,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/your-username/throttle/internal/limiter"
-	"github.com/your-username/throttle/internal/metrics"
-	"github.com/your-username/throttle/internal/proxy"
+	"github.com/NYMIX18/throttle/internal/limiter"
+	"github.com/NYMIX18/throttle/internal/metrics"
+	"github.com/NYMIX18/throttle/internal/proxy"
 )
 
 //go:embed web/index.html
