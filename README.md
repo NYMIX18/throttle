@@ -60,7 +60,7 @@ This project is a small, complete answer to those problems, written to be readab
 You need Go 1.22 or newer.
 
 ```bash
-git clone https://github.com/your-username/throttle
+git clone https://github.com/NYMIX18/throttle
 cd throttle
 
 make demo          # builds, then starts 3 demo backends and Throttle
